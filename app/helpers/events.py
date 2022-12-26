@@ -7,7 +7,7 @@ import helpers.cache as cache_helper
 from falcon import HTTPUnprocessableEntity  # pylint: disable=no-name-in-module
 
 events_collection: AsyncIOMotorCollection = get_collection("events")
-UUID_PATTERN = re.compile(r"^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$", re.IGNORECASE)
+UUID_PATTERN = re.compile(r"^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$")
 
 EVENTS = "events"
 
