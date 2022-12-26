@@ -4,7 +4,7 @@ from bson.json_util import dumps, loads
 
 REDIS_URL = os.environ["REDIS_URL"]
 redis_client = aioredis.from_url(REDIS_URL)
-EXPIRES = 60 * 60  # one hour
+EXPIRES = 300  # 5 minutes
 
 
 async def put(obj_type: str, obj_id: str, obj: dict, expires=EXPIRES):
