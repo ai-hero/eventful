@@ -1,0 +1,12 @@
+bcrypt
+gevent
+pyjwt
+pylint
+python-dateutil
+pytest
+falcon
+uvicorn[standard]
+httpx
+aioredis
+motor[srv]
+fastjsonschema
