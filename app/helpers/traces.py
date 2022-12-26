@@ -3,13 +3,13 @@ from uuid import uuid4
 from datetime import datetime
 from helpers.common import retry_auto_reconnect, get_collection
 from motor.motor_asyncio import AsyncIOMotorCollection
+from pymongo import ReturnDocument
 import helpers.cache as cache_helper
 from falcon import HTTPUnprocessableEntity  # pylint: disable=no-name-in-module
 
-events_collection: AsyncIOMotorCollection = get_collection("events")
+TRACES = "traces"
+traces_collection: AsyncIOMotorCollection = get_collection(TRACES)
 UUID_PATTERN = re.compile(r"^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$")
-
-EVENTS = "events"
 
 
 def create_indexes(f):
@@ -21,48 +21,59 @@ def create_indexes(f):
 
 
 @retry_auto_reconnect
-async def get(event_id: str) -> dict:
-    cached = await cache_helper.get(EVENTS, event_id)
+async def get(trace_id: str) -> dict:
+    cached = await cache_helper.get(TRACES, trace_id)
     if cached:
         return cached
-    event = await events_collection.find_one(event_id)
+    event = await traces_collection.find_one(trace_id)
     if event is None:
-        return None
-    await cache_helper.put(EVENTS, event_id, event)
+        return []
+    await cache_helper.put(TRACES, trace_id, event)
     return event
 
 
 @retry_auto_reconnect
 @create_indexes
-async def put(event_id: str, event: dict):
+async def push(
+    trace_id: str, event_id: str, event_type: str, event_span: str, event_at
+):
     if not (isinstance(event_id, str) and UUID_PATTERN.match(event_id)):
         raise HTTPUnprocessableEntity("Bad event_id.")
-    if not ("type" in event and isinstance(event["type"], str)):
-        raise HTTPUnprocessableEntity("Bad 'type' in event.")
-    if "span" in event and not isinstance(event["span"], str):
-        raise HTTPUnprocessableEntity("Bad 'span' in event.")
-    if "headers" in event and not isinstance(event["headers"], dict):
-        raise HTTPUnprocessableEntity("Bad 'headers' in event.")
-    if "on_event" in event:
-        if not (
-            isinstance(event["on_event"], str) and UUID_PATTERN.match(event["on_event"])
-        ):
-            raise HTTPUnprocessableEntity("Bad 'on_event' in event.")
-        on_event = await get(event["on_event"])
-        if not on_event:
-            raise HTTPUnprocessableEntity("Did not find 'on_event' in event.")
-        event["trace_id"] = on_event["trace_id"]
-    else:
-        event["trace_id"] = str(uuid4())  # starts a new trace
-    if "waiting_on" in event and not isinstance(event["waiting_on"], dict):
-        raise HTTPUnprocessableEntity("Bad 'waiting_on' in event.")
-    event.update(
-        {
-            "_id": event_id,
-            "is_deleted": False,
-            "created_at": datetime.utcnow(),
-        }
+    if not isinstance(event_type, str):
+        raise HTTPUnprocessableEntity("Bad 'event_type'.")
+    if not isinstance(event_span, str):
+        raise HTTPUnprocessableEntity("Bad 'event_span'.")
+
+    # The trace event
+    push_obj = {
+        "event_id": event_id,
+        "event_type": event_type,
+        "event_span": event_span,
+        "event_at": event_at,
+    }
+
+    # Build an in-memory trace object
+    trace = await get(trace_id)
+    trace.append(push_obj)
+    await cache_helper.put(TRACES, trace_id, trace)
+
+    # Update the db
+    insert_obj = {
+        "_id": trace_id,
+        "trace": [],
+        "is_deleted": False,
+        "created_at": datetime.utcnow(),
+    }
+    upsert_obj = {
+        "$push": push_obj,
+        "$inc": {"version": 1},
+        "$setOnInsert": insert_obj,
+    }
+    traces_collection.find_one_and_update(
+        {"_id": trace_id},
+        upsert_obj,
+        return_document=ReturnDocument.AFTER,
+        upsert=True,
     )
-    events_collection.insert_one(event)
-    await cache_helper.put(EVENTS, event_id, event)
-    return event
+
+    return trace

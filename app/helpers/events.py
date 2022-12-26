@@ -6,10 +6,9 @@ from motor.motor_asyncio import AsyncIOMotorCollection
 import helpers.cache as cache_helper
 from falcon import HTTPUnprocessableEntity  # pylint: disable=no-name-in-module
 
-events_collection: AsyncIOMotorCollection = get_collection("events")
-UUID_PATTERN = re.compile(r"^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$")
-
 EVENTS = "events"
+events_collection: AsyncIOMotorCollection = get_collection(EVENTS)
+UUID_PATTERN = re.compile(r"^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$")
 
 
 def create_indexes(f):
@@ -39,25 +38,23 @@ async def put(event_id: str, event: dict):
         raise HTTPUnprocessableEntity("Bad event_id.")
     if not ("type" in event and isinstance(event["type"], str)):
         raise HTTPUnprocessableEntity("Bad 'type' in event.")
-    if "trace_id" not in event:
-        event["trace_id"] = str(uuid4())
-    if not (
-        "trace_id" in event
-        and isinstance(event["trace_id"], str)
-        and UUID_PATTERN.match(event["trace_id"])
-    ):
-        raise HTTPUnprocessableEntity("Bad 'trace_id' in event.")
     if "span" in event and not isinstance(event["span"], str):
         raise HTTPUnprocessableEntity("Bad 'span' in event.")
     if "headers" in event and not isinstance(event["headers"], dict):
         raise HTTPUnprocessableEntity("Bad 'headers' in event.")
-    if "on_event" in event and not (
-        isinstance(event["on_event"], str) and UUID_PATTERN.match(event["on_event"])
-    ):
-        raise HTTPUnprocessableEntity("Bad 'on_event' in event.")
+    if "on_event" in event:
+        if not (
+            isinstance(event["on_event"], str) and UUID_PATTERN.match(event["on_event"])
+        ):
+            raise HTTPUnprocessableEntity("Bad 'on_event' in event.")
+        on_event = await get(event["on_event"])
+        if not on_event:
+            raise HTTPUnprocessableEntity("Did not find 'on_event' in event.")
+        event["trace_id"] = on_event["trace_id"]
+    else:
+        event["trace_id"] = str(uuid4())  # starts a new trace
     if "waiting_on" in event and not isinstance(event["waiting_on"], dict):
         raise HTTPUnprocessableEntity("Bad 'waiting_on' in event.")
-
     event.update(
         {
             "_id": event_id,
