@@ -1,5 +1,4 @@
 import re
-from uuid import uuid4
 from datetime import datetime
 from helpers.common import retry_auto_reconnect, get_collection
 from motor.motor_asyncio import AsyncIOMotorCollection

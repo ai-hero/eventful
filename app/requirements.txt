@@ -4,6 +4,7 @@ pyjwt
 pylint
 python-dateutil
 pytest
+gunicorn
 falcon
 uvicorn[standard]
 httpx
