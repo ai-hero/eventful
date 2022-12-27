@@ -40,6 +40,8 @@ async def put(event_id: str, event: dict):
         raise HTTPUnprocessableEntity("Bad 'type' in event.")
     if "span" in event and not isinstance(event["span"], str):
         raise HTTPUnprocessableEntity("Bad 'span' in event.")
+    elif "span" not in event:
+        event["span"] = "default"
     if "headers" in event and not isinstance(event["headers"], dict):
         raise HTTPUnprocessableEntity("Bad 'headers' in event.")
     if "on_event" in event:
