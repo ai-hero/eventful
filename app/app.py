@@ -7,6 +7,7 @@ from falcon import Request, Response, media
 from helpers.encoder import CustomJsonEncoder
 from routes.health_check import HealthCheck
 from routes.one_event import OneEventRoute
+from routes.subscribe import SubscribeRoute
 
 
 async def custom_handle_uncaught_exception(
@@ -35,3 +36,4 @@ app.resp_options.media_handlers.update(extra_handlers)
 # Health Check
 app.add_route("/", HealthCheck())
 app.add_route("/v1/events/{event_id}", OneEventRoute)
+app.add_route("/v1/subscribe", SubscribeRoute)
