@@ -1,34 +1,63 @@
+import sys
+import logging
+import httpx
+from datetime import datetime
 import helpers.cache as cache_helper
+from helpers.events import EventContext
+
+# Set up logger
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class Subscriptions:
     @classmethod
-    def subscribe(cls, event_type: str, listener: dict):
+    def subscribe(cls, event_type: str, group: str, listener: dict):
         listeners = cache_helper.get("event_subscribers", event_type)
-        if not listeners:
-            listeners = []
-        listeners.append(listener)
-        cache_helper.put("event_subscribers", event_type, listeners)
+        listener["at"] = datetime.utcnow()
+        if listeners is None:
+            listeners = {}
+        listeners[group] = listener
+        cache_helper.put("event_subscribers", event_type, listeners, None)
 
     @classmethod
-    async def noitfy_event(cls, event_type: str):
+    def notify_event(cls, event_context: EventContext, event_type: str, payload: dict):
         listeners = cache_helper.get("event_subscribers", event_type)
         if listeners:
-            print(f"Should notify: {listeners}")
+            new_event = event_context.next(event_type)
+            for group, listener in listeners.items():
+                try:
+                    match listener["type"]:
+                        case "webhook":
+                            callback_url = listener["callback_url"]
+                            try:
+                                with httpx.Client(
+                                    headers=new_event.headers()
+                                ) as client:
+                                    resp = client.post(callback_url, json=payload)
+                                    resp.raise_for_status()
+                            except httpx.HTTPError:
+                                logger.error(
+                                    "%s.%s: Cannot callback '%s'",
+                                    event_type,
+                                    group,
+                                    callback_url,
+                                )
+                        case _:
+                            logger.error(
+                                "%s.%s: Unknown listener type '%s'",
+                                event_type,
+                                group,
+                                listener["type"],
+                            )
+                except KeyError:
+                    logger.error(
+                        "%s.%s: SHOULD NOT HAPPEN: some attributes are missing for listener '%s'",
+                        event_type,
+                        group,
+                        listener["type"],
+                    )
 
-    @classmethod
-    def waiting_on(cls, trace_id: str, event_type: str, listener: dict):
-        event_listeners = cache_helper.get("trace_waiters", trace_id)
-        if not event_listeners:
-            event_listeners = {}
-        if event_type not in event_listeners:
-            event_listeners[event_type] = []
-        event_listeners[event_type].append(listener)
-        cache_helper.put("trace_waiters", trace_id, listener)
-
-    @classmethod
-    async def noitfy_trace_event(cls, trace_id: str, event_type: str):
-        event_listeners = cache_helper.get("trace_waiters", trace_id)
-        if event_listeners and event_type in event_listeners:
-            listeners = event_listeners[event_type]
-            print(f"Should notify: {listeners}")
+            return new_event
+        else:
+            return None

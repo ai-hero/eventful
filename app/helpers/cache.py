@@ -1,25 +1,28 @@
 import os
-import aioredis
+import redis
 from bson.json_util import dumps, loads
 
-REDIS_URL = os.environ["REDIS_URL"]
-redis_client = aioredis.from_url(REDIS_URL)
-EXPIRES = 300  # 5 minutes
+REDIS_CONNECTION_STRING = os.environ["REDIS_CONNECTION_STRING"]
+pool = redis.ConnectionPool.from_url(REDIS_CONNECTION_STRING)
+EXPIRES = 1800  # enough time for services to come up
 
 
-async def put(obj_type: str, obj_id: str, obj: dict, expires=EXPIRES):
+def put(obj_type: str, obj_id: str, obj: dict, expires=EXPIRES):
+    redis_client = redis.StrictRedis(connection_pool=pool, decode_responses=True)
     key = f"{obj_type}__{obj_id}"
-    await redis_client.set(key, dumps(obj), ex=expires)
+    redis_client.set(key, dumps(obj), ex=expires)
 
 
-async def delete(obj_type: str, obj_id: str):
+def delete(obj_type: str, obj_id: str):
+    redis_client = redis.StrictRedis(connection_pool=pool, decode_responses=True)
     key = f"{obj_type}__{obj_id}"
-    await redis_client.delete(key)
+    redis_client.delete(key)
 
 
-async def get(obj_type: str, obj_id: str):
+def get(obj_type: str, obj_id: str):
     key = f"{obj_type}__{obj_id}"
-    obj = await redis_client.get(key)
+    redis_client = redis.StrictRedis(connection_pool=pool, decode_responses=True)
+    obj = redis_client.get(key)
     if obj:
         return loads(obj.decode("utf-8"))
     else:

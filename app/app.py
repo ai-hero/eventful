@@ -1,16 +1,16 @@
 import json
 import traceback
 import falcon
-import falcon.asgi
 from functools import partial
 from falcon import Request, Response, media
 from helpers.encoder import CustomJsonEncoder
 from routes.health_check import HealthCheck
-from routes.one_event import OneEventRoute
+from routes.event_state import EventStateRoute
 from routes.subscribe import SubscribeRoute
+from routes.trigger import TriggerRoute
 
 
-async def custom_handle_uncaught_exception(
+def custom_handle_uncaught_exception(
     req: Request, resp: Response, exception: Exception, _: dict
 ):
     traceback.print_exc()
@@ -18,10 +18,8 @@ async def custom_handle_uncaught_exception(
     resp.media = f"{exception}"
 
 
-# falcon.asgi.App instances are callable ASGI apps...
-# in larger applications the app is created in a separate file
-app = falcon.asgi.App()
-app.add_error_handler(Exception, custom_handle_uncaught_exception)
+app = falcon.App()
+app.add_error_handler(Exception, custom_handle_Runcaught_exception)
 
 # JSON Handler for the config
 json_handler = media.JSONHandler(
@@ -35,5 +33,6 @@ app.resp_options.media_handlers.update(extra_handlers)
 
 # Health Check
 app.add_route("/", HealthCheck())
-app.add_route("/v1/events/{event_id}", OneEventRoute)
-app.add_route("/v1/subscribe", SubscribeRoute)
+app.add_route("/v1/event/{event_id}/", EventStateRoute())
+app.add_route("/v1/trigger/{event_type}", TriggerRoute())
+app.add_route("/v1/subscribe", SubscribeRoute())

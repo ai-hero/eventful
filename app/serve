@@ -13,16 +13,12 @@ server_timeout = os.environ.get("SERVER_TIMEOUT", 3600)
 server_workers = int(os.environ.get("SERVER_WORKERS", cpu_count))
 
 
-def sigterm_handler(nginx_pid, gunicorn_pid):
-    try:
-        os.kill(nginx_pid, signal.SIGQUIT)
-    except OSError:
-        pass
-    try:
-        os.kill(gunicorn_pid, signal.SIGTERM)
-    except OSError:
-        pass
-
+def sigterm_handler(*pids):
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGQUIT)
+        except OSError:
+            pass
     sys.exit(0)
 
 
@@ -40,7 +36,7 @@ def start_server():
             "--timeout",
             str(server_timeout),
             "-k",
-            "uvicorn.workers.UvicornWorker",
+            "gevent",
             "-b",
             "unix:/tmp/gunicorn.sock",
             "-w",

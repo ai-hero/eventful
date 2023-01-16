@@ -1,13 +1,14 @@
-bcrypt
-gevent
+pytest
+pylint
+falcon
+uvicorn[standard] # ASGI
+gevent # WSGI
+httpx
+gunicorn
+minio
+redis
+pymongo
 pyjwt
 pylint
 python-dateutil
-pytest
-gunicorn
-falcon
-uvicorn[standard]
-httpx
-aioredis
-motor[srv]
-fastjsonschema
+validators
