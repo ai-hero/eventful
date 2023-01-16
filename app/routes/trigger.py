@@ -1,0 +1,36 @@
+import falcon
+from falcon import Request, Response
+from helpers.subscriptions import Subscriptions
+from helpers.events import get_context_from_http
+
+
+class TriggerRoute:
+    def on_post(self, req: Request, resp: Response, event_type: str) -> Response:
+        """Handles GET requests"""
+        resp.status = falcon.HTTP_200  # pylint: disable=no-member
+        payload: list[dict] = req.get_media()
+        event_context = get_context_from_http(req)
+        print(event_context.headers(), event_type, payload)
+        new_event = Subscriptions.notify_event(event_context, event_type, payload)
+
+        # event = events_helper.put(event_id, new_event)
+        # chains_helper.push(
+        #     chain_id=event["chain_id"],
+        #     event_id=event_id,
+        #     event_type=event["type"],
+        #     event_span=event["span"],
+        #     event_at=event["created_at"],
+        # )
+        # if "waiting_on" in event:
+        #     chain_id = event["waiting_on"]["chain_id"]
+        #     waiting_on_event_type = event["waiting_on"]["event_type"]
+        #     waiting_on_listener = event["waiting_on"]["listener"]
+        #     Subscriptions.waiting_on(
+        #         chain_id, waiting_on_event_type, waiting_on_listener
+        #     )
+        if new_event:
+            resp.set_headers(new_event.headers())
+            resp.media = {"success": True}
+        else:
+            resp.media = {"success": False}
+        return resp

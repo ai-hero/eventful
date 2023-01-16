@@ -1,0 +1,23 @@
+# Use for running a single service for local dev
+version: "3.9"  
+services:
+  eventful:
+    image: eventful:latest
+    environment:
+      - REDIS_CONNECTION_STRING=redis://redis:6379
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    networks:
+      - ai-hero-internal
+
+  redis:
+    image: redis:alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    hostname: redis
+    networks:
+      - ai-hero-internal
+
+networks:
+  ai-hero-internal:
