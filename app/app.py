@@ -19,7 +19,7 @@ def custom_handle_uncaught_exception(
 
 
 app = falcon.App()
-app.add_error_handler(Exception, custom_handle_Runcaught_exception)
+app.add_error_handler(Exception, custom_handle_uncaught_exception)
 
 # JSON Handler for the config
 json_handler = media.JSONHandler(
@@ -33,6 +33,6 @@ app.resp_options.media_handlers.update(extra_handlers)
 
 # Health Check
 app.add_route("/", HealthCheck())
-app.add_route("/v1/event/{event_id}/", EventStateRoute())
+app.add_route("/v1/events/{event_id}", EventStateRoute())
 app.add_route("/v1/trigger/{event_type}", TriggerRoute())
 app.add_route("/v1/subscribe", SubscribeRoute())

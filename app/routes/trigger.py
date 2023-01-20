@@ -1,7 +1,7 @@
 import falcon
 from falcon import Request, Response
 from helpers.subscriptions import Subscriptions
-from helpers.events import get_context_from_http
+from helpers.event_context import get_context_from_http
 
 
 class TriggerRoute:
@@ -10,8 +10,7 @@ class TriggerRoute:
         resp.status = falcon.HTTP_200  # pylint: disable=no-member
         payload: list[dict] = req.get_media()
         event_context = get_context_from_http(req)
-        print(event_context.headers(), event_type, payload)
-        new_event = Subscriptions.notify_event(event_context, event_type, payload)
+        new_event = Subscriptions.trigger(event_context, event_type, payload)
 
         # event = events_helper.put(event_id, new_event)
         # chains_helper.push(
