@@ -30,7 +30,9 @@ class Subscriptions:
         return listener
 
     @classmethod
-    def trigger(cls, event_context: EventContext, event_type: str, payload: dict):
+    def trigger(
+        cls, event_context: EventContext, event_type: str, payload: dict
+    ) -> EventContext:
         logger.info(
             "TRIG:\t%s/%s\t-->\t%s/*",
             event_context.event_type,
@@ -40,6 +42,7 @@ class Subscriptions:
         listeners = cache_helper.get("event_subscribers", event_type)
         if listeners:
             new_event = event_context.next(event_type)
+
             for group, listener in listeners.items():
                 try:
                     match listener["type"]:

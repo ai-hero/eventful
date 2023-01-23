@@ -1,5 +1,6 @@
 from uuid import uuid4
 from datetime import datetime
+import helpers.event_state as events_state_helper
 
 
 class EventContext:
@@ -24,7 +25,7 @@ class EventContext:
         self.previous: str = previous
 
     def next(self, event_type):
-        return EventContext(
+        next_event = EventContext(
             self.authorization_header,
             self.session_id,
             self.chain_id,
@@ -34,6 +35,11 @@ class EventContext:
             datetime.utcnow(),
             self.event_id,
         )
+        events_state_helper.put_state(
+            next_event.event_id,
+            event_state={"state": "created", "progress": 0.0, "message": "Created."},
+        )
+        return next_event
 
     def headers(self):
         headers = {}

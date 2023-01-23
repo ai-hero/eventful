@@ -2,6 +2,7 @@ import falcon
 from falcon import Request, Response
 from helpers.subscriptions import Subscriptions
 from helpers.event_context import get_context_from_http
+from helpers.event_state import get_state
 
 
 class TriggerRoute:
@@ -29,7 +30,7 @@ class TriggerRoute:
         #     )
         if new_event:
             resp.set_headers(new_event.headers())
-            resp.media = {"success": True}
+            resp.media = get_state(new_event.event_id)
         else:
             resp.media = {"success": False}
         return resp
