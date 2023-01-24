@@ -8,5 +8,5 @@ run: build
 	docker-compose up --remove-orphans
 
 push: build
-	docker tag eventful:latest 635605213996.dkr.ecr.us-west-2.amazonaws.com/eventful:$(TAG)
-	docker push 635605213996.dkr.ecr.us-west-2.amazonaws.com/eventful:$(TAG)
+	docker tag eventful:latest 635605213996.dkr.ecr.us-east-1.amazonaws.com/eventful:$(TAG)
+	docker push 635605213996.dkr.ecr.us-east-1.amazonaws.com/eventful:$(TAG)
