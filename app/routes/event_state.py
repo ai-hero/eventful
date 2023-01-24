@@ -14,11 +14,16 @@ class EventStateRoute:
     def on_post(self, req: Request, resp: Response, event_id: str) -> Response:
         """Handles POST requests"""
         event_state: dict = req.get_media()
+
         event_state["updated_at"] = datetime.utcnow()
         if "state" in event_state:
             state = event_state["state"]
             event_state[f"{state}_at"] = datetime.utcnow()
         resp.status = falcon.HTTP_200  # pylint: disable=no-member
+        existing_state = events_state_helper.get_state(event_id)
+        if existing_state:
+            existing_state.update(event_state)
+            event_state = existing_state
         events_state_helper.put_state(event_id, event_state)
         resp.media = event_state
         return resp
