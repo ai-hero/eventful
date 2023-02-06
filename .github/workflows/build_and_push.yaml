@@ -1,4 +1,4 @@
-name: Build and Push Containeer
+name: Build and Push Container
 on:
   push:
     branches: ["*"]
